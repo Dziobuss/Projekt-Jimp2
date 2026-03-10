@@ -1,0 +1,120 @@
+\documentclass[12pt,a4paper]{article}
+
+% --- Pakiety językowe i kodowanie ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{polski}
+
+% --- Pakiety graficzne i formatowanie ---
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{booktabs}
+
+% --- Konfiguracja listingu (kodu) ---
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    captionpos=b
+}
+
+% --- Dane o projekcie ---
+\title{Dokumentacja Funkcjonalna Projektu C\\ \large System wyznaczania współrzędnych węzłów grafów planarnych}
+\author{Autorzy: [Twoje Imię i Nazwisko], [Imię i Nazwisko Partnera]}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+
+\section{Cel projektu}
+Celem niniejszego projektu jest stworzenie wydajnej aplikacji konsolowej w języku C, która na podstawie topologii grafu planarnego (listy krawędzi) wyznacza optymalne współrzędne dwuwymiarowe $(x, y)$ dla jego wierzchołków. 
+
+Głównym zadaniem programu jest przekształcenie surowych danych o połączeniach w strukturę umożliwiającą tzw. „ładną” wizualizację, czyli taką, która minimalizuje przecięcia krawędzi i zachowuje czytelność struktury grafu. Aplikacja stanowi silnik obliczeniowy, którego wyniki mogą być w dalszym etapie wykorzystane przez moduły graficzne (np. aplikację w języku Java).
+
+\section{Opis funkcji udostępnianych przez program}
+Program oferuje następujące funkcjonalności:
+\begin{itemize}
+    \item \textbf{Wczytywanie struktury grafu:} Przetwarzanie plików tekstowych zawierających listę krawędzi wraz z ich wagami.
+    \item \textbf{Obliczanie układu grafu (Layout):} Wyznaczanie współrzędnych wierzchołków przy użyciu jednego z dwóch zaimplementowanych algorytmów:
+    \begin{itemize}
+        \item \textbf{Algorytm Fruchtermana-Reingolda:} Model siłowy (force-directed), traktujący krawędzie jak sprężyny, a wierzchołki jak ładunki odpychające się.
+        \item \textbf{Algorytm Tutte’a (Spring Theorem):} Metoda gwarantująca poprawny układ dla grafów planarnych trójspójnych poprzez umieszczenie wierzchołków zewnętrznych na wielokącie wypukłym.
+    \end{itemize}
+    \item \textbf{Eksport wyników:} Zapis wyliczonych współrzędnych do pliku w formacie tekstowym lub binarnym.
+    \item \textbf{Parametryzacja obliczeń:} Możliwość zdefiniowania liczby iteracji algorytmu oraz rozmiaru obszaru roboczego (płótna).
+\end{itemize}
+
+\section{Interfejs linii poleceń}
+Program jest sterowany wyłącznie poprzez argumenty przekazywane w wierszu poleceń. Składnia wywołania:
+\begin{center}
+    \texttt{./graph\_layout [OPCJE]}
+\end{center}
+
+\subsection{Lista dostępnych flag}
+\begin{table}[h!]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Flaga} & \textbf{Argument} & \textbf{Opis} \\ \midrule
+\texttt{-i} & \textit{ścieżka} & Ścieżka do wejściowego pliku tekstowego z grafem (wymagane). \\
+\texttt{-o} & \textit{ścieżka} & Ścieżka do pliku wynikowego (wymagane). \\
+\texttt{-a} & \textit{algorytm} & Wybór algorytmu: \texttt{fr} (Fruchterman-Reingold) lub \texttt{tutte}. \\
+\texttt{-f} & \textit{format} & Format wyjściowy: \texttt{txt} (tekstowy) lub \texttt{bin} (binarny). \\
+\texttt{-n} & \textit{liczba} & Liczba iteracji algorytmu (domyślnie 100). \\
+\texttt{-h} & --- & Wyświetlenie pomocy i zakończenie programu. \\ \bottomrule
+\end{tabular}
+\caption{Argumenty wywołania programu}
+\end{table}
+
+\section{Formaty danych}
+
+\subsection{Format wejściowy (Tekstowy)}
+Program przyjmuje plik tekstowy, gdzie każda linia reprezentuje jedną krawędź w formacie:
+\begin{lstlisting}
+<nazwa_krawedzi> <wierzcholek_A> <wierzcholek_B> <waga_krawedzi>
+\end{lstlisting}
+\textbf{Przykład:}
+\begin{lstlisting}
+E1 1 2 1.0
+E2 2 3 1.0
+E3 3 1 1.5
+\end{lstlisting}
+
+\subsection{Format wyjściowy tekstowy}
+Wynik działania zapisywany jest jako lista współrzędnych:
+\begin{lstlisting}
+<wierzcholek> <wspolrzedna_x> <wspolrzedna_y>
+\end{lstlisting}
+Współrzędne są liczbami zmiennoprzecinkowymi.
+
+\section{Sytuacje wyjątkowe i błędy}
+Program zwraca odpowiedni kod błędu (\texttt{exit code}) oraz komunikat na standardowe wyjście błędów (\texttt{stderr}).
+
+\begin{itemize}
+    \item \textbf{Kod 1: Błąd odczytu pliku} – Podana ścieżka wejściowa nie istnieje lub brak uprawnień.
+    \item \textbf{Kod 2: Błędny format danych} – Plik wejściowy zawiera znaki niebędące liczbami tam, gdzie są wymagane, lub brakuje kolumn.
+    \item \textbf{Kod 3: Nieznany algorytm} – Przekazano flagę \texttt{-a} z wartością inną niż \texttt{fr} lub \texttt{tutte}.
+    \item \textbf{Kod 4: Błąd alokacji pamięci} – Brak pamięci RAM do przetworzenia dużego grafu.
+\end{itemize}
+
+\section{Przykłady użycia}
+1. Wyznaczenie współrzędnych metodą Fruchtermana-Reingolda i zapis do tekstu:
+\begin{lstlisting}
+./graph_layout -i dane.txt -o wynik.txt -a fr -f txt
+\end{lstlisting}
+
+2. Wyznaczenie współrzędnych metodą Tutte'a i zapis binarny (500 iteracji):
+\begin{lstlisting}
+./graph_layout -i siec.txt -o mapa.bin -a tutte -f bin -n 500
+\end{lstlisting}
+
+\end{document}
