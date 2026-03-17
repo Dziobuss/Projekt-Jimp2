@@ -80,8 +80,25 @@ Program jest sterowany poprzez argumenty przekazywane w wierszu poleceń. Skład
 \section{Formaty danych}
 \subsection{Format wejściowy}
 Każda linia reprezentuje krawędź: \texttt{<nazwa> <od\_id> <do\_id> <waga>}.
+\\
+\textbf{Przykład:}
+\begin{lstlisting}
+AB   1  2  1
+BC   2  3  1
+CD   3  4  1
+DB   4  2  1.407
+\end{lstlisting}
+
 \subsection{Format wyjściowy}
-Każda linia reprezentuje pozycję: \texttt{<id\_węzła> <x> <y>}.
+Wynikiem działania programu ma być plik tekstowy lub binarny (w zależności od wyboru użytkownika) zawierający listę współrzędnych wierzchołków: \texttt{<wierzchołek> <współrzędna\_x> <współrzędna\_y>}.
+\\
+\textbf{Przykład:}
+\begin{lstlisting}
+1 0.0 0.0
+2 1.0 0.0
+3 1.0 1.0
+4 0.0 1.0
+\end{lstlisting}
 
 \section{Kody błędów}
 \begin{itemize}
