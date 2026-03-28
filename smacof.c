@@ -1,146 +1,126 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <math.h>
-#include <float.h>
-#include <time.h>
+#include "graph.h"
 
-#define MAX_NODES 500
-#define ITERATIONS 200 // Zwiększono dla lepszej stabilności
-#define EPSILON 1e-9
-
-typedef struct {
-    double x, y;
-} Point;
-
-// Bezpieczna odległość euklidesowa
-double safe_dist(Point a, Point b) {
-    double dx = a.x - b.x;
-    double dy = a.y - b.y;
+// Bezpieczna odległość euklidesowa dla SMACOF
+double safe_dist(double x1, double y1, double x2, double y2) {
+    double dx = x1 - x2;
+    double dy = y1 - y2;
     double d = sqrt(dx*dx + dy*dy);
     return (d < EPSILON) ? EPSILON : d; // Nigdy nie zwracaj 0
 }
 
-void smacof(int n, double d_target[MAX_NODES][MAX_NODES], Point coords[MAX_NODES], int exists[MAX_NODES]) {
-    double w[MAX_NODES][MAX_NODES];
-    
-    // 1. Oblicz wagi i przygotuj macierz celu
-    for (int i = 0; i < n; i++) {
-        for (int j = 0; j < n; j++) {
-            if (i == j || !exists[i] || !exists[j] || d_target[i][j] >= DBL_MAX/4) {
-                w[i][j] = 0;
-            } else {
-                // Standardowa waga SMACOF: 1 / d^2
-                w[i][j] = 1.0 / (d_target[i][j] * d_target[i][j]);
-            }
+// --- ALGORYTM 1: SMACOF ---
+void calculate_smacof(Vertex* vertices, int num_v, Edge* edges, int num_e, int iterations) {
+    // Alokacja pamięci dla macierzy odległości i wag
+    double **d_target = malloc(num_v * sizeof(double*));
+    double **w = malloc(num_v * sizeof(double*));
+    for(int i = 0; i < num_v; i++) {
+        d_target[i] = malloc(num_v * sizeof(double));
+        w[i] = malloc(num_v * sizeof(double));
+        for(int j = 0; j < num_v; j++) {
+            d_target[i][j] = (i == j) ? 0.0 : DBL_MAX / 2.0;
         }
     }
 
-    Point next_coords[MAX_NODES];
-
-    // 2. Pętla optymalizacji (Guttman Transform)
-    for (int iter = 0; iter < ITERATIONS; iter++) {
-        for (int i = 0; i < n; i++) {
-            if (!exists[i]) continue;
-
-            double sum_w = 0;
-            double sum_x = 0;
-            double sum_y = 0;
-
-            for (int j = 0; j < n; j++) {
-                if (i == j || !exists[j] || w[i][j] == 0) continue;
-
-                double d_curr = safe_dist(coords[i], coords[j]);
-                sum_w += w[i][j];
-                
-                // Formuła Guttmana
-                sum_x += w[i][j] * (coords[j].x + d_target[i][j] * (coords[i].x - coords[j].x) / d_curr);
-                sum_y += w[i][j] * (coords[j].y + d_target[i][j] * (coords[i].y - coords[j].y) / d_curr);
-            }
-
-            if (sum_w > 0) {
-                next_coords[i].x = sum_x / sum_w;
-                next_coords[i].y = sum_y / sum_w;
-            } else {
-                next_coords[i] = coords[i];
-            }
+    // Wypełnianie bezpośrednich krawędzi
+    for(int i = 0; i < num_e; i++) {
+        int u_idx = -1, v_idx = -1;
+        for(int j = 0; j < num_v; j++) {
+            if(vertices[j].id == edges[i].u) u_idx = j;
+            if(vertices[j].id == edges[i].v) v_idx = j;
         }
-
-        // Aktualizacja pozycji
-        for (int i = 0; i < n; i++) {
-            if (exists[i]) coords[i] = next_coords[i];
+        if(u_idx != -1 && v_idx != -1) {
+            // Zabezpieczenie przed ujemnymi lub zerowymi wagami
+            double weight = (edges[i].weight <= 0) ? 0.1 : edges[i].weight;
+            d_target[u_idx][v_idx] = weight;
+            d_target[v_idx][u_idx] = weight;
         }
     }
-}
-
-int main() {
-    double adj[MAX_NODES][MAX_NODES];
-    int exists[MAX_NODES] = {0};
-    Point coords[MAX_NODES];
-    int max_id = 0;
-
-    for (int i = 0; i < MAX_NODES; i++) {
-        for (int j = 0; j < MAX_NODES; j++) {
-            adj[i][j] = (i == j) ? 0 : DBL_MAX / 2;
-        }
-    }
-
-    char name[50];
-    int u, v;
-    double weight;
-
-    // Czytanie danych
-    while (scanf("%s %d %d %lf", name, &u, &v, &weight) == 4) {
-        if (u >= MAX_NODES || v >= MAX_NODES) continue;
-        if (weight <= 0) weight = 0.1; // Waga nie może być <= 0
-        adj[u][v] = adj[v][u] = weight;
-        exists[u] = exists[v] = 1;
-        if (u > max_id) max_id = u;
-        if (v > max_id) max_id = v;
-    }
-
-    int n = max_id + 1;
 
     // Floyd-Warshall (Najkrótsze ścieżki)
-    for (int k = 0; k < n; k++) {
-        if (!exists[k]) continue;
-        for (int i = 0; i < n; i++) {
-            if (!exists[i]) continue;
-            for (int j = 0; j < n; j++) {
-                if (exists[j] && adj[i][k] + adj[k][j] < adj[i][j])
-                    adj[i][j] = adj[i][k] + adj[k][j];
+    for(int k = 0; k < num_v; k++) {
+        for(int i = 0; i < num_v; i++) {
+            for(int j = 0; j < num_v; j++) {
+                if (d_target[i][k] + d_target[k][j] < d_target[i][j]) {
+                    d_target[i][j] = d_target[i][k] + d_target[k][j];
+                }
             }
         }
     }
 
     // Obsługa grafu niespójnego: zamień nieskończoność na dużą wartość
-    // (Inaczej punkty odlecą w kosmos)
     double max_dist = 0;
-    for(int i=0; i<n; i++)
-        for(int j=0; j<n; j++)
-            if(exists[i] && exists[j] && adj[i][j] < DBL_MAX/4 && adj[i][j] > max_dist)
-                max_dist = adj[i][j];
-
-    for(int i=0; i<n; i++)
-        for(int j=0; j<n; j++)
-            if(exists[i] && exists[j] && adj[i][j] >= DBL_MAX/4)
-                adj[i][j] = max_dist * 2.0; 
-
-    // Inicjalizacja: Punkty na okręgu (lepiej niż totalnie losowo)
-    for (int i = 0; i < n; i++) {
-        if (exists[i]) {
-            coords[i].x = cos(i * 2.0 * M_PI / n) * n;
-            coords[i].y = sin(i * 2.0 * M_PI / n) * n;
+    for(int i = 0; i < num_v; i++) {
+        for(int j = 0; j < num_v; j++) {
+            if(d_target[i][j] < DBL_MAX / 4.0 && d_target[i][j] > max_dist) {
+                max_dist = d_target[i][j];
+            }
+        }
+    }
+    for(int i = 0; i < num_v; i++) {
+        for(int j = 0; j < num_v; j++) {
+            if(d_target[i][j] >= DBL_MAX / 4.0) {
+                d_target[i][j] = max_dist * 2.0; 
+            }
         }
     }
 
-    smacof(n, adj, coords, exists);
+    // Inicjalizacja: Punkty na okręgu (nadpisuje losową z maina, lepsze dla SMACOF)
+    for (int i = 0; i < num_v; i++) {
+        vertices[i].x = cos(i * 2.0 * M_PI / num_v) * num_v;
+        vertices[i].y = sin(i * 2.0 * M_PI / num_v) * num_v;
+    }
 
-    // Wynik
-    for (int i = 0; i < n; i++) {
-        if (exists[i]) {
-            printf("%d %.4f %.4f\n", i, coords[i].x, coords[i].y);
+    // 1. Oblicz wagi
+    for(int i = 0; i < num_v; i++) {
+        for(int j = 0; j < num_v; j++) {
+            if (i == j || d_target[i][j] >= DBL_MAX / 4.0) {
+                w[i][j] = 0;
+            } else {
+                w[i][j] = 1.0 / (d_target[i][j] * d_target[i][j]);
+            }
         }
     }
 
-    return 0;
+    double *next_x = malloc(num_v * sizeof(double));
+    double *next_y = malloc(num_v * sizeof(double));
+
+    // 2. Pętla optymalizacji (Guttman Transform)
+    for (int iter = 0; iter < iterations; iter++) {
+        for (int i = 0; i < num_v; i++) {
+            double sum_w = 0, sum_x = 0, sum_y = 0;
+
+            for (int j = 0; j < num_v; j++) {
+                if (i == j || w[i][j] == 0) continue;
+
+                double d_curr = safe_dist(vertices[i].x, vertices[i].y, vertices[j].x, vertices[j].y);
+                sum_w += w[i][j];
+                
+                // Formuła Guttmana
+                sum_x += w[i][j] * (vertices[j].x + d_target[i][j] * (vertices[i].x - vertices[j].x) / d_curr);
+                sum_y += w[i][j] * (vertices[j].y + d_target[i][j] * (vertices[i].y - vertices[j].y) / d_curr);
+            }
+
+            if (sum_w > 0) {
+                next_x[i] = sum_x / sum_w;
+                next_y[i] = sum_y / sum_w;
+            } else {
+                next_x[i] = vertices[i].x;
+                next_y[i] = vertices[i].y;
+            }
+        }
+
+        // Aktualizacja pozycji
+        for (int i = 0; i < num_v; i++) {
+            vertices[i].x = next_x[i];
+            vertices[i].y = next_y[i];
+        }
+    }
+
+    // Sprzątanie pamięci algorytmu
+    for(int i = 0; i < num_v; i++) {
+        free(d_target[i]);
+        free(w[i]);
+    }
+    free(d_target); free(w);
+    free(next_x); free(next_y);
 }
