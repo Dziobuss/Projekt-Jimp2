@@ -44,16 +44,16 @@ System został zaprojektowany z zachowaniem zasad programowania modułowego. Kod
 
 \subsection{Moduły języka C}
 \begin{itemize}
-    \item \textbf{\texttt{graph.h}:} Główny plik nagłówkowy spinający projekt. Zawiera definicje struktur danych (\texttt{Vertex}, \texttt{Edge}), stałych matematycznych (np. \texttt{EPSILON} dla algorytmu SMACOF) oraz deklaracje prototypów funkcji obliczeniowych.
+    \item \textbf{\texttt{graph.h}:} Główny plik nagłówkowy spinający projekt. Zawiera definicje struktur danych (\texttt{Vertex}, \texttt{Edge}), stałych matematycznych (np. \texttt{EPSILON}) oraz deklaracje prototypów funkcji obliczeniowych.
     
-    \item \textbf{\texttt{main.c}:} Moduł inicjujący i sterujący. Parsuje argumenty linii poleceń (\texttt{argc}, \texttt{argv}), wczytuje i weryfikuje dane topologii, dynamicznie alokuje pamięć, inicjalizuje wstępne współrzędne, a po wykonaniu obliczeń zapisuje wyniki do plików.
+    \item \textbf{\texttt{main.c}:} Moduł inicjujący i sterujący. Parsuje argumenty linii poleceń , wczytuje i weryfikuje dane topologii, dynamicznie alokuje pamięć, inicjalizuje wstępne współrzędne, a po wykonaniu obliczeń zapisuje wyniki do plików.
     
     \item \textbf{\texttt{smacof.c}:} Niezależny moduł realizujący algorytm SMACOF. Główną logikę umieszczono w funkcji \texttt{calculate\_smacof}, wspieranej przez matematyczną funkcję pomocniczą \texttt{safe\_dist}.
     
     \item \textbf{\texttt{fruchterman.c}:} Moduł zawierający implementację siłowego algorytmu optymalizacyjnego wewnątrz funkcji \texttt{calculate\_fruchterman}.
 \end{itemize}
 
-\subsection{Moduły testowe i narzędziowe (Python)}
+\subsection{Moduły testowe i narzędziowe}
 Na potrzeby zapewnienia jakości aplikacji przygotowano zestaw narzędzi:
 \begin{itemize}
     \item \textbf{\texttt{generator.py}:} Generator pseudolosowych instancji grafów. Generuje siatki połączeń dla zadanej liczby węzłów i krawędzi (z opcją losowania wag), produkując pliki wejściowe w formacie akceptowalnym przez program.
@@ -61,7 +61,7 @@ Na potrzeby zapewnienia jakości aplikacji przygotowano zestaw narzędzi:
 \end{itemize}
 
 \section{Struktury danych}
-Podstawowymi strukturami wykorzystywanymi do reprezentacji grafów (zdefiniowanymi w \texttt{graph.h}) są:
+Podstawowymi strukturami wykorzystywanymi do reprezentacji grafów są:
 
 \begin{lstlisting}[language=C]
 typedef struct { 
@@ -94,7 +94,7 @@ Zaimplementowano klasyczny model sprężyn i odpychających się ładunków elek
 \end{itemize}
 
 \section{Specyfikacja wejścia i wyjścia}
-Poniższa specyfikacja definiuje formaty danych wymienianych między modułem obliczeniowym w języku C a aplikacją kliencką w języku Java.
+Poniższa specyfikacja definiuje formaty danych wymienianych między modułem obliczeniowym, a zewnętrznymi komponentami systemu.
 
 \subsection{Wejście}
 Program parsuje pliki wejściowe liniowo wywołując instrukcję \texttt{fscanf}. Kod zawarty w \texttt{main.c} aplikuje automatyczną naprawę błędnych danych. Dowolne wejściowe wagi krawędzi $\le 0$ są interpretowane i nadpisywane systemową stałą o wartości \texttt{0.1}, co zapobiega propagacji błędu przez ujemne odległości.
@@ -105,8 +105,8 @@ Wynikowa lokalizacja wierzchołków generowana jest do postaci ASCII i powinna b
 \subsection{Format plików binarnych (\texttt{bin})}
 Opcjonalny zrzut strukturalny oparty o procedurę \texttt{fwrite} (\texttt{save\_to\_binary}). Wymaga zastosowania odpowiednich technik deserializacji:
 \begin{enumerate}
-    \item \textbf{Liczba wierzchołków ($N$):} Pierwsze 4 bajty pliku to zwykła liczba całkowita (typ \texttt{int}). Informuje ona program w Javie, ile łącznie węzłów zapisano w pliku, dzięki czemu wiadomo, ile razy należy wykonać pętlę wczytującą kolejne dane.
-    \item \textbf{Dane pojedynczego wierzchołka:} Reszta pliku wypełniona jest blokami 20-bajtowymi. Architektura bloku to: $4$ bajty przestrzeni \texttt{id} (Signed Integer 32-bit), $8$ bajtów \texttt{x} (Double 64-bit) oraz $8$ bajtów \texttt{y} (Double 64-bit).
+    \item \textbf{Liczba wierzchołków ($N$):} Pierwsze 4 bajty pliku to zwykła liczba całkowita (typ \texttt{int}). Informuje ona, ile łącznie węzłów zapisano w pliku.
+    \item \textbf{Dane pojedynczego wierzchołka:} Reszta pliku natomiast wypełniona jest blokami 20-bajtowymi. Architektura bloku to: $4$ bajty przestrzeni \texttt{id} (Signed Integer 32-bit), $8$ bajtów \texttt{x} (Double 64-bit) oraz $8$ bajtów \texttt{y} (Double 64-bit).
 \end{enumerate}
 
 \section{Zarządzanie pamięcią i łączenie}
