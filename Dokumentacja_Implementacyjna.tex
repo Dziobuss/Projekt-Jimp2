@@ -44,16 +44,16 @@ System został zaprojektowany z zachowaniem zasad programowania modułowego. Kod
 
 \subsection{Moduły języka C}
 \begin{itemize}
-    \item \textbf{\texttt{graph.h}:} Główny plik nagłówkowy spinający projekt. Zawiera definicje struktur danych (\texttt{Vertex}, \texttt{Edge}), stałych matematycznych (np. \texttt{EPSILON} dla algorytmu SMACOF) oraz deklaracje prototypów funkcji obliczeniowych.
+    \item \textbf{\texttt{graph.h}:} Główny plik nagłówkowy spinający projekt. Zawiera definicje struktur danych (\texttt{Vertex}, \texttt{Edge}), stałych matematycznych (np. \texttt{EPSILON}) oraz deklaracje prototypów funkcji obliczeniowych.
     
-    \item \textbf{\texttt{main.c}:} Moduł inicjujący i sterujący. Parsuje argumenty linii poleceń (\texttt{argc}, \texttt{argv}), wczytuje i weryfikuje dane topologii, dynamicznie alokuje pamięć, inicjalizuje wstępne współrzędne, a po wykonaniu obliczeń zapisuje wyniki do plików.
+    \item \textbf{\texttt{main.c}:} Moduł inicjujący i sterujący. Parsuje argumenty linii poleceń , wczytuje i weryfikuje dane topologii, dynamicznie alokuje pamięć, inicjalizuje wstępne współrzędne, a po wykonaniu obliczeń zapisuje wyniki do plików.
     
     \item \textbf{\texttt{smacof.c}:} Niezależny moduł realizujący algorytm SMACOF. Główną logikę umieszczono w funkcji \texttt{calculate\_smacof}, wspieranej przez matematyczną funkcję pomocniczą \texttt{safe\_dist}.
     
     \item \textbf{\texttt{fruchterman.c}:} Moduł zawierający implementację siłowego algorytmu optymalizacyjnego wewnątrz funkcji \texttt{calculate\_fruchterman}.
 \end{itemize}
 
-\subsection{Moduły testowe i narzędziowe (Python)}
+\subsection{Moduły testowe i narzędziowe}
 Na potrzeby zapewnienia jakości aplikacji przygotowano zestaw narzędzi:
 \begin{itemize}
     \item \textbf{\texttt{generator.py}:} Generator pseudolosowych instancji grafów. Generuje siatki połączeń dla zadanej liczby węzłów i krawędzi (z opcją losowania wag), produkując pliki wejściowe w formacie akceptowalnym przez program.
@@ -61,7 +61,7 @@ Na potrzeby zapewnienia jakości aplikacji przygotowano zestaw narzędzi:
 \end{itemize}
 
 \section{Struktury danych}
-Podstawowymi strukturami wykorzystywanymi do reprezentacji grafów (zdefiniowanymi w \texttt{graph.h}) są:
+Podstawowymi strukturami wykorzystywanymi do reprezentacji grafów są:
 
 \begin{lstlisting}[language=C]
 typedef struct { 
