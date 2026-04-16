@@ -114,6 +114,8 @@ Wynikiem działania programu ma być plik tekstowy lub binarny (w zależności o
 \end{itemize}
 
 \section{Przykłady użycia}
+% gotowe komendy do skopiowania
+
 1. Wyznaczenie współrzędnych metodą Fruchtermana-Reingolda i zapis do tekstu:
 \begin{lstlisting}[language=bash]
 ./graph_layout -i dane.txt -o wynik.txt -a fr -n 1000 -f txt
@@ -130,16 +132,29 @@ Wynikiem działania programu ma być plik tekstowy lub binarny (w zależności o
 % ========================================================
 \part{Dokumentacja Implementacyjna}
 
-\section{Przewodnik po architekturze}
-Aplikacja została napisana w języku C (standard C99) w postaci jednego spójnego pliku \texttt{graph\_layout.c}. Główne bloki logiczne programu to:
+\section{Architektura systemu i podział na moduły}
+System został zaprojektowany z zachowaniem zasad programowania modułowego. Kod źródłowy w języku C rozdzielono na osobne pliki, oddzielając logikę sterującą od implementacji poszczególnych algorytmów obliczeniowych. Dodatkowo zintegrowano środowisko testowe oparte na skryptach Python.
+
+\subsection{Moduły języka C}
 \begin{itemize}
-    \item \textbf{Obsługa I/O (Input/Output):} Parsowanie argumentów za pomocą pętli iterującej po \texttt{argv}, mapowanie węzłów i wczytywanie grafu funkcją \texttt{fscanf}.
-    \item \textbf{Mechanizmy obliczeniowe:} Dwie dedykowane funkcje przyjmujące te same argumenty wejściowe (struktury grafu i liczbę iteracji), wykonujące symulacje \texttt{calculate\_fruchterman} oraz \texttt{calculate\_smacof}.
-    \item \textbf{Zapis wyników:} Moduł zrzucający stan pamięci do pliku tekstowego (\texttt{fprintf}) lub binarnego (\texttt{fwrite}).
+    \item \textbf{\texttt{graph.h}:} Główny plik nagłówkowy spinający projekt. Zawiera definicje struktur danych (\texttt{Vertex}, \texttt{Edge}), stałych matematycznych (np. \texttt{EPSILON}) oraz deklaracje prototypów funkcji obliczeniowych.
+    
+    \item \textbf{\texttt{main.c}:} Moduł inicjujący i sterujący. Parsuje argumenty linii poleceń , wczytuje i weryfikuje dane topologii, dynamicznie alokuje pamięć, inicjalizuje wstępne współrzędne, a po wykonaniu obliczeń zapisuje wyniki do plików.
+    
+    \item \textbf{\texttt{smacof.c}:} Niezależny moduł realizujący algorytm SMACOF. Główną logikę umieszczono w funkcji \texttt{calculate\_smacof}, wspieranej przez matematyczną funkcję pomocniczą \texttt{safe\_dist}.
+    
+    \item \textbf{\texttt{fruchterman.c}:} Moduł zawierający implementację siłowego algorytmu optymalizacyjnego wewnątrz funkcji \texttt{calculate\_fruchterman}.
 \end{itemize}
 
-\section{Główne struktury danych}
-Do modelowania grafu w pamięci operacyjnej zastosowano następujące struktury:
+\subsection{Moduły testowe i narzędziowe}
+Na potrzeby zapewnienia jakości aplikacji przygotowano zestaw narzędzi:
+\begin{itemize}
+    \item \textbf{\texttt{generator.py}:} Generator pseudolosowych instancji grafów. Generuje siatki połączeń dla zadanej liczby węzłów i krawędzi (z opcją losowania wag), produkując pliki wejściowe w formacie akceptowalnym przez program.
+    \item \textbf{\texttt{wizualizacja.py}:} Analizator graficzny wykorzystujący bibliotekę \texttt{matplotlib}. Wczytuje oryginalną siatkę krawędzi oraz wygenerowane pozycje X i Y, umożliwiając wizualną weryfikację węzłów na płaszczyźnie.
+\end{itemize}
+
+\section{Struktury danych}
+Podstawowymi strukturami wykorzystywanymi do reprezentacji grafów są:
 
 \begin{lstlisting}[language=C]
 typedef struct { 
@@ -153,61 +168,49 @@ typedef struct {
 } Edge;
 \end{lstlisting}
 
-\textbf{Uwaga implementacyjna dla mapowania:} W programie zastosowano pomocniczą tablicę \texttt{node\_map}. Identyfikatory węzłów w pliku wejściowym mogą nie być po kolei (np. węzły 10 i 100). Program parsuje je i przypisuje im kolejne indeksy wewnętrzne ($0, 1, ..., N-1$), co pozwala na optymalne działanie algorytmów na ciągłych obszarach pamięci. Dopiero przy zapisie, do pliku trafiają ich oryginalne wartości \texttt{id}.
+\textbf{Mechanizm mapowania węzłów (\texttt{main.c}):} Numery węzłów (identyfikatory) podane w pliku wejściowym nie zawsze występują po kolei (np. mogą to być węzły 10 i 100 bez żadnych węzłów pomiędzy). Moduł parsujący buduje strukturę \texttt{node\_map}, przypisując takim węzłom kolejne, ciągłe indeksy ($[0, N-1]$). Pozwala to programowi optymalnie używać pamięci i zapobiega tworzeniu ogromnych, pustych tablic. Dopiero przy zapisie wyników do pliku, program przywraca węzłom ich oryginalne identyfikatory.
 
-\section{Szczegóły implementacji algorytmów}
+\section{Implementacja algorytmów optymalizacyjnych}
 
-\subsection{Fruchterman-Reingold}
-Algorytm symuluje układ fizyczny . Został rozbity w kodzie na dwa główne kroki w każdej iteracji:
+\subsection{SMACOF (\texttt{smacof.c})}
+Zastosowano algorytm oparty na transformacji Guttmana, składający się z kluczowych faz:
 \begin{itemize}
-    \item \textbf{Faza odpychania:} Podwójna pętla iterująca po wszystkich wierzchołkach (złożoność $O(V^2)$). Węzły działają na siebie jak ładunki elektryczne -- im bliżej siebie, tym silniejsza siła \texttt{force = (k * k) / dist}.
-    \item \textbf{Faza przyciągania:} Pojedyncza pętla po krawędziach grafu. Węzły połączone zachowują się jak połączone sprężyną wg wzoru \texttt{force = (dist * dist) / k}, z dodatkowym uwzględnieniem wagi z pliku wejściowego.
+    \item \textbf{Macierz odległości:} Na bazie wczytanych krawędzi algorytm najpierw używa metody \textbf{Floyda-Warshalla} do propagacji najkrótszych ścieżek między wszystkimi niesąsiadującymi węzłami grafu, obsługując izolowane klastry dużą stałą odległością.
+    \item \textbf{Inicjalizacja współrzędnych:} Zamiast losować pozycje startowe, program na samym początku układa wszystkie węzły równomiernie na obwodzie koła (korzystając z funkcji \texttt{sin()} i \texttt{cos()}). Zapobiega to nakładaniu się punktów na siebie i pomaga algorytmowi płynniej znaleźć optymalny układ, bez ryzyka utknięcia w złym ułożeniu początkowym.
+    \item \textbf{Zabezpieczenie przed dzieleniem przez zero:} Jeśli dwa węzły znajdą się dokładnie w tym samym punkcie (odległość wyniesie 0), wzory algorytmu wygenerowałyby błąd matematyczny psujący wyniki. Aby temu zapobiec, wprowadzono funkcję \texttt{safe\_dist}, która podmienia zerową odległość na minimalną dopuszczalną wartość (\texttt{EPSILON = 1e-9}), zapewniając stabilność całego programu.
 \end{itemize}
 
-\subsection{SMACOF}
-Implementacja algorytmu skalowania wielowymiarowego podzielona jest na część inicjalizacyjną i iteracyjną:
+\subsection{Fruchterman-Reingold (\texttt{fruchterman.c})}
+Zaimplementowano klasyczny model sprężyn i odpychających się ładunków elektrycznych. Obliczenia na każdą iterację \texttt{iterations} dzielą się na:
 \begin{itemize}
-    \item \textbf{Algorytm Floyda-Warshalla:} Przed główną pętlą program buduje macierz odległości najkrótszych ścieżek między \textit{wszystkimi} węzłami grafu, a nie tylko sąsiadami. Brakujące połączenia w grafach niespójnych inicjowane są dużą wartością stałą (\texttt{max\_dist * 2.0}), zapobiegając błędnemu rozciąganiu grafu do nieskończoności.
-    \item \textbf{Inicjalizacja na okręgu:} Aby uniknąć utknięcia algorytmu w minimach lokalnych, początkowe współrzędne rozkładane są matematycznie na obwodzie koła przy użyciu funkcji \texttt{sin()} i \texttt{cos()}, a nie czysto losowo.
-    \item \textbf{Transformacja Guttmana:} Główna pętla optymalizacyjna, minimalizująca błąd (Stress). Wykorzystuje funkcję pomocniczą \texttt{safe\_dist()} z progiem \texttt{EPSILON = 1e-9}, zabezpieczającą przed błędem dzielenia przez 0 (NaN) przy nakładających się punktach.
+    \item Faza $O(V^2)$: globalne odpychanie poszczególnych wierzchołków na zasadzie odwrotnej proporcjonalności do ich odległości.
+    \item Faza $O(E)$: iteracja wzdłuż bezpośrednich krawędzi (zdefiniowanych w wektorze struktur \texttt{Edge}) i przyciąganie połączonych wierzchołków wzajemnymi wektorami sił z jednoczesnym uwzględnieniem wagi \texttt{(weight)}.
 \end{itemize}
 
-\section{Specyfikacja wejścia i wyjścia (Dla zespołu JAVA)}
-Sekcja ta opisuje techniczne aspekty wczytywania danych oraz formaty zapisu wyników, które zespół tworzący GUI w języku Java będzie musiał zinterpretować.
+\section{Specyfikacja wejścia i wyjścia}
+Poniższa specyfikacja definiuje formaty danych wymienianych między modułem obliczeniowym, a zewnętrznymi komponentami systemu.
 
-\subsection{Specyfikacja wejścia (Parsowanie danych)}
-Plik wejściowy czytany jest w trybie tekstowym linia po linii za pomocą funkcji \texttt{fscanf}. Ponieważ identyfikatory węzłów mogą być nieciągłe (np. węzły 10 i 100 bez węzłów pomiędzy), program wykorzystuje technikę mapowania:
-\begin{itemize}
-    \item Funkcja buduje tablicę \texttt{node\_map}, która zamienia arbitralne identyfikatory z pliku na ciągłe indeksy tablic z przedziału $[0, N-1]$.
-    \item Program automatycznie weryfikuje wagi krawędzi. Jeśli napotka wagę mniejszą lub równą $0$, nadpisuje ją wartością domyślną \texttt{0.1}, co zabezpiecza algorytmy (zwłaszcza SMACOF) przed niestabilnością numeryczną.
-\end{itemize}
+\subsection{Wejście}
+Program parsuje pliki wejściowe liniowo wywołując instrukcję \texttt{fscanf}. Kod zawarty w \texttt{main.c} aplikuje automatyczną naprawę błędnych danych. Dowolne wejściowe wagi krawędzi $\le 0$ są interpretowane i nadpisywane systemową stałą o wartości \texttt{0.1}, co zapobiega propagacji błędu przez ujemne odległości.
 
-\subsection{Zapis do pliku tekstowego (\texttt{txt})}
-Dane zapisywane są standardowo za pomocą kodowania ASCII wiersz po wierszu. 
-Format pojedynczej linii z wykorzystaniem funkcji \texttt{fprintf}: \texttt{\%d \%f \%f\\n} (Oryginalny identyfikator przestrzenny \texttt{int}, pozycja X \texttt{double}, pozycja Y \texttt{double}). 
+\subsection{Format plików tekstowych (\texttt{txt})}
+Wynikowa lokalizacja wierzchołków generowana jest do postaci ASCII i powinna być parsowana wyrażeniem: \verb|%d %f %f\n| (Kolejno: Integer ID, Double Oś X, Double Oś Y).
 
-\subsection{Zapis do pliku binarnego (\texttt{bin})}
-Zapis binarny stanowi bezpośredni zrzut struktur z pamięci C z użyciem funkcji \texttt{fwrite}. Zespół Java powinien zaimplementować deserializację następującego ułożenia bajtów:
+\subsection{Format plików binarnych (\texttt{bin})}
+Opcjonalny zrzut strukturalny oparty o procedurę \texttt{fwrite} (\texttt{save\_to\_binary}). Wymaga zastosowania odpowiednich technik deserializacji:
 \begin{enumerate}
-    \item \textbf{Liczba wierzchołków:} Pierwsze 4 bajty pliku zawierają wartość całkowitą (\texttt{int} 32-bit), określającą zmienną $N$.
-    \item \textbf{Dane wierzchołków:} Bezpośrednio po tej wartości występuje blok $N$ elementów. Jeden element zajmuje 20 bajtów (sztywna struktura bez wyrównania):
-    \begin{itemize}
-        \item 4 bajty: \texttt{id} (typ \texttt{int} 32-bit)
-        \item 8 bajtów: \texttt{x} (typ \texttt{double} 64-bit zgodny z IEEE 754)
-        \item 8 bajtów: \texttt{y} (typ \texttt{double} 64-bit zgodny z IEEE 754)
-    \end{itemize}
+    \item \textbf{Liczba wierzchołków ($N$):} Pierwsze 4 bajty pliku to zwykła liczba całkowita (typ \texttt{int}). Informuje ona, ile łącznie węzłów zapisano w pliku.
+    \item \textbf{Dane pojedynczego wierzchołka:} Reszta pliku natomiast wypełniona jest blokami 20-bajtowymi. Architektura bloku to: $4$ bajty przestrzeni \texttt{id} (Signed Integer 32-bit), $8$ bajtów \texttt{x} (Double 64-bit) oraz $8$ bajtów \texttt{y} (Double 64-bit).
 \end{enumerate}
 
-\section{Zarządzanie pamięcią i kompilacja}
-Program operuje na grafach wczytywanych w locie, w związku z czym zaimplementowano całkowicie dynamiczne zarządzanie pamięcią (\texttt{malloc}). Główna tablica \texttt{vertices} jest alokowana dopiero po zliczeniu unikalnych identyfikatorów. W przypadku algorytmu SMACOF, alokowane są dodatkowo dwuwymiarowe tablice wskaźników do obsługi macierzy odległości \texttt{d\_target} i macierzy wag \texttt{w}.
+\section{Zarządzanie pamięcią i łączenie}
+Kluczowe wektory i macierze przetrzymywane są na stercie. Główna tablica struktur węzłowych \texttt{vertices} jest alokowana z użyciem \texttt{malloc} przez \texttt{main.c} (tylko na podstawie wyliczonej ilości realnie zidentyfikowanych wierzchołków, nie na stałym przedziale rozmiaru grafu). Ponadto tablice dwuwymiarowe w funkcji \texttt{calculate\_smacof} (odległości i wagi) są budowane jako macierze wskaźników dynamicznych.
 
-Pamięć jest zwalniana procedurą \texttt{free()} zarówno na końcu działania poszczególnych algorytmów (dla lokalnych struktur obliczeniowych), jak i przed instrukcją \texttt{return 0} funkcji \texttt{main} dla głównej struktury grafu. Zapewnia to stabilność na długotrwałych seriach testów. 
+Wszystkie dynamicznie zaalokowane zasoby są zwalniane za pomocą wywołań funkcji \texttt{free()} po zakończeaniu działania algorytmów lub tuż przed zamknięciem programu, co zapobiega wyciekom pamięci.
 
-Plik należy kompilować z flagą wymuszającą konsolidację biblioteki matematycznej:
+\textbf{Komenda kompilacji z wymuszeniem linkowania bibliotek współdzielonych dla trygonometrii:}
 \begin{lstlisting}[language=bash]
-gcc -o graph_layout graph_layout.c -lm
+gcc -o graph_layout main.c smacof.c fruchterman.c -lm
 \end{lstlisting}
-
-
 
 \end{document}
