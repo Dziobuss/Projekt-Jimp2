@@ -1,0 +1,213 @@
+\documentclass[12pt,a4paper]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[polish]{babel}
+\usepackage{polski}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{float}
+
+% ustawienia wygladu kodu
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    extendedchars=true,
+    keepspaces=true,
+    columns=fixed,
+    commentstyle=\normalfont\ttfamily,
+    showstringspaces=false,
+    % zeby polskie znaki w kodzie nie wywalaly bledow
+    literate={ą}{{\k{a}}}1 {ć}{{\'c}}1 {ę}{{\k{e}}}1 {ł}{{\l{}}}1 {ń}{{\'n}}1 {ó}{{\'o}}1 {ś}{{\'s}}1 {ź}{{\'z}}1 {ż}{{\.z}}1 {Ą}{{\k{A}}}1 {Ć}{{\'C}}1 {Ę}{{\k{E}}}1 {Ł}{{\L{}}}1 {Ń}{{\'N}}1 {Ó}{{\'O}}1 {Ś}{{\'S}}1 {Ź}{{\'Z}}1 {Ż}{{\.Z}}1
+}
+
+% informacje o autorach
+\title{Dokumentacja Funkcjonalna i Implementacyjna Projektu C\\ \large System wyznaczania współrzędnych węzłów grafów planarnych}
+\author{Autorzy: Mateusz Bombola, Kajetan Karwacki}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\newpage
+\tableofcontents
+\newpage
+
+% ========================================================
+% CZĘŚĆ 1: DOKUMENTACJA FUNKCJONALNA
+% ========================================================
+\part{Dokumentacja Funkcjonalna}
+
+\section{Cel projektu}
+Celem projektu jest stworzenie aplikacji w języku C, która na podstawie topologii grafu planarnego wyznacza optymalne współrzędne dwuwymiarowe $(x, y)$ dla jego wierzchołków. Program służy jako silnik obliczeniowy przetwarzający dane o połączeniach w celu wygenerowania układu umożliwiającego czytelną wizualizację grafu.
+
+\section{Opis algorytmów rozmieszczania grafu}
+W programie zaimplementowano dwie niezależne metody wyznaczania współrzędnych:
+
+\begin{itemize}
+    \item \textbf{Algorytm SMACOF (\texttt{smacof}):} Służy do rozmieszczania elementów w przestrzeni na podstawie ich wzajemnych podobieństw lub odległości. Działa poprzez iteracyjne poprawianie położenia punktów tak, aby odległości między nimi jak najlepiej odpowiadały zadanym wartościom. W efekcie powstaje układ, w którym elementy bardziej podobne znajdują się bliżej siebie, a mniej podobne dalej.
+    
+    \item \textbf{Algorytm Fruchtermana-Reingolda (\texttt{fr}):} Automatycznie rozmieszcza elementy grafu w przestrzeni tak, aby był on czytelny i przejrzysty. Traktuje węzły jak obiekty, które wzajemnie się odpychają, a połączone elementy przyciągają się jak sprężyny. Dzięki wielokrotnemu przeliczaniu tych zależności program stopniowo ustala układ, w którym struktura grafu jest łatwa do zrozumienia.
+\end{itemize}
+
+\section{Interfejs linii poleceń}
+Program jest sterowany poprzez argumenty przekazywane w wierszu poleceń. Składnia wywołania:
+\begin{center}
+    \begin{verbatim}
+    ./graph_layout -i <input> -o <output> -a <smacof|fr> [-n iter] [-f txt|bin]
+    \end{verbatim}
+\end{center}
+
+\subsection{Lista dostępnych flag}
+\begin{table}[H]
+\centering
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{Flaga} & \textbf{Argument} & \textbf{Opis} \\ \midrule
+\texttt{-i} & \textit{ścieżka} & Ścieżka do wejściowego pliku tekstowego (wymagane). \\
+\texttt{-o} & \textit{ścieżka} & Ścieżka do pliku wynikowego (wymagane). \\
+\texttt{-a} & \textit{algorytm} & Wybór algorytmu: \texttt{smacof} lub \texttt{fr}. \\
+\texttt{-n} & \textit{liczba} & Liczba iteracji (domyślnie 1000). \\
+\texttt{-f} & \textit{format} & Format wyjściowy: \texttt{txt} lub \texttt{bin}. \\
+\texttt{-h} & --- & Wyświetlenie pomocy technicznej. \\
+\bottomrule
+\end{tabular}
+\caption{Parametry sterujące programem}
+\end{table}
+
+\section{Formaty danych}
+\subsection{Format wejściowy}
+Każda linia reprezentuje krawędź: \texttt{<nazwa> <od\_id> <do\_id> <waga>}.
+\\
+\textbf{Przykład:}
+\begin{lstlisting}
+AB   1  2  1
+BC   2  3  1
+CD   3  4  1
+DB   4  2  1.407
+\end{lstlisting}
+
+\subsection{Format wyjściowy}
+Wynikiem działania programu ma być plik tekstowy lub binarny (w zależności od wyboru użytkownika) zawierający listę współrzędnych wierzchołków: \texttt{<wierzchołek> <współrzędna\_x> <współrzędna\_y>}.
+\\
+\textbf{Przykład:}
+\begin{lstlisting}
+1 0.0 0.0
+2 1.0 0.0
+3 1.0 1.0
+4 0.0 1.0
+\end{lstlisting}
+
+\section{Kody błędów}
+\begin{itemize}
+    \item \textbf{Kod 1:} Błąd otwarcia pliku wejściowego.
+    \item \textbf{Kod 2:} Nieprawidłowy format danych wejściowych.
+    \item \textbf{Kod 3:} Nieznany algorytm (oczekiwano \texttt{smacof} lub \texttt{fr}).
+    \item \textbf{Kod 4:} Błąd alokacji pamięci.
+\end{itemize}
+
+\section{Przykłady użycia}
+1. Wyznaczenie współrzędnych metodą Fruchtermana-Reingolda i zapis do tekstu:
+\begin{lstlisting}[language=bash]
+./graph_layout -i dane.txt -o wynik.txt -a fr -n 1000 -f txt
+\end{lstlisting}
+
+2. Wyznaczenie współrzędnych metodą SMACOF i zapis binarny (500 iteracji):
+\begin{lstlisting}[language=bash]
+./graph_layout -i siec.txt -o mapa.bin -a smacof -n 500 -f bin
+\end{lstlisting}
+
+\newpage
+% ========================================================
+% CZĘŚĆ 2: DOKUMENTACJA IMPLEMENTACYJNA
+% ========================================================
+\part{Dokumentacja Implementacyjna}
+
+\section{Przewodnik po architekturze}
+Aplikacja została napisana w języku C (standard C99) w postaci jednego spójnego pliku \texttt{graph\_layout.c}. Główne bloki logiczne programu to:
+\begin{itemize}
+    \item \textbf{Obsługa I/O (Input/Output):} Parsowanie argumentów za pomocą pętli iterującej po \texttt{argv}, mapowanie węzłów i wczytywanie grafu funkcją \texttt{fscanf}.
+    \item \textbf{Mechanizmy obliczeniowe:} Dwie dedykowane funkcje przyjmujące te same argumenty wejściowe (struktury grafu i liczbę iteracji), wykonujące symulacje \texttt{calculate\_fruchterman} oraz \texttt{calculate\_smacof}.
+    \item \textbf{Zapis wyników:} Moduł zrzucający stan pamięci do pliku tekstowego (\texttt{fprintf}) lub binarnego (\texttt{fwrite}).
+\end{itemize}
+
+\section{Główne struktury danych}
+Do modelowania grafu w pamięci operacyjnej zastosowano następujące struktury:
+
+\begin{lstlisting}[language=C]
+typedef struct { 
+    int id; 
+    double x, y; 
+} Vertex;
+
+typedef struct { 
+    int u, v; 
+    double weight; 
+} Edge;
+\end{lstlisting}
+
+\textbf{Uwaga implementacyjna dla mapowania:} W programie zastosowano pomocniczą tablicę \texttt{node\_map}. Identyfikatory węzłów w pliku wejściowym mogą nie być po kolei (np. węzły 10 i 100). Program parsuje je i przypisuje im kolejne indeksy wewnętrzne ($0, 1, ..., N-1$), co pozwala na optymalne działanie algorytmów na ciągłych obszarach pamięci. Dopiero przy zapisie, do pliku trafiają ich oryginalne wartości \texttt{id}.
+
+\section{Szczegóły implementacji algorytmów}
+
+\subsection{Fruchterman-Reingold}
+Algorytm symuluje układ fizyczny . Został rozbity w kodzie na dwa główne kroki w każdej iteracji:
+\begin{itemize}
+    \item \textbf{Faza odpychania:} Podwójna pętla iterująca po wszystkich wierzchołkach (złożoność $O(V^2)$). Węzły działają na siebie jak ładunki elektryczne -- im bliżej siebie, tym silniejsza siła \texttt{force = (k * k) / dist}.
+    \item \textbf{Faza przyciągania:} Pojedyncza pętla po krawędziach grafu. Węzły połączone zachowują się jak połączone sprężyną wg wzoru \texttt{force = (dist * dist) / k}, z dodatkowym uwzględnieniem wagi z pliku wejściowego.
+\end{itemize}
+
+\subsection{SMACOF}
+Implementacja algorytmu skalowania wielowymiarowego podzielona jest na część inicjalizacyjną i iteracyjną:
+\begin{itemize}
+    \item \textbf{Algorytm Floyda-Warshalla:} Przed główną pętlą program buduje macierz odległości najkrótszych ścieżek między \textit{wszystkimi} węzłami grafu, a nie tylko sąsiadami. Brakujące połączenia w grafach niespójnych inicjowane są dużą wartością stałą (\texttt{max\_dist * 2.0}), zapobiegając błędnemu rozciąganiu grafu do nieskończoności.
+    \item \textbf{Inicjalizacja na okręgu:} Aby uniknąć utknięcia algorytmu w minimach lokalnych, początkowe współrzędne rozkładane są matematycznie na obwodzie koła przy użyciu funkcji \texttt{sin()} i \texttt{cos()}, a nie czysto losowo.
+    \item \textbf{Transformacja Guttmana:} Główna pętla optymalizacyjna, minimalizująca błąd (Stress). Wykorzystuje funkcję pomocniczą \texttt{safe\_dist()} z progiem \texttt{EPSILON = 1e-9}, zabezpieczającą przed błędem dzielenia przez 0 (NaN) przy nakładających się punktach.
+\end{itemize}
+
+\section{Specyfikacja wejścia i wyjścia (Dla zespołu JAVA)}
+Sekcja ta opisuje techniczne aspekty wczytywania danych oraz formaty zapisu wyników, które zespół tworzący GUI w języku Java będzie musiał zinterpretować.
+
+\subsection{Specyfikacja wejścia (Parsowanie danych)}
+Plik wejściowy czytany jest w trybie tekstowym linia po linii za pomocą funkcji \texttt{fscanf}. Ponieważ identyfikatory węzłów mogą być nieciągłe (np. węzły 10 i 100 bez węzłów pomiędzy), program wykorzystuje technikę mapowania:
+\begin{itemize}
+    \item Funkcja buduje tablicę \texttt{node\_map}, która zamienia arbitralne identyfikatory z pliku na ciągłe indeksy tablic z przedziału $[0, N-1]$.
+    \item Program automatycznie weryfikuje wagi krawędzi. Jeśli napotka wagę mniejszą lub równą $0$, nadpisuje ją wartością domyślną \texttt{0.1}, co zabezpiecza algorytmy (zwłaszcza SMACOF) przed niestabilnością numeryczną.
+\end{itemize}
+
+\subsection{Zapis do pliku tekstowego (\texttt{txt})}
+Dane zapisywane są standardowo za pomocą kodowania ASCII wiersz po wierszu. 
+Format pojedynczej linii z wykorzystaniem funkcji \texttt{fprintf}: \texttt{\%d \%f \%f\\n} (Oryginalny identyfikator przestrzenny \texttt{int}, pozycja X \texttt{double}, pozycja Y \texttt{double}). 
+
+\subsection{Zapis do pliku binarnego (\texttt{bin})}
+Zapis binarny stanowi bezpośredni zrzut struktur z pamięci C z użyciem funkcji \texttt{fwrite}. Zespół Java powinien zaimplementować deserializację następującego ułożenia bajtów:
+\begin{enumerate}
+    \item \textbf{Liczba wierzchołków:} Pierwsze 4 bajty pliku zawierają wartość całkowitą (\texttt{int} 32-bit), określającą zmienną $N$.
+    \item \textbf{Dane wierzchołków:} Bezpośrednio po tej wartości występuje blok $N$ elementów. Jeden element zajmuje 20 bajtów (sztywna struktura bez wyrównania):
+    \begin{itemize}
+        \item 4 bajty: \texttt{id} (typ \texttt{int} 32-bit)
+        \item 8 bajtów: \texttt{x} (typ \texttt{double} 64-bit zgodny z IEEE 754)
+        \item 8 bajtów: \texttt{y} (typ \texttt{double} 64-bit zgodny z IEEE 754)
+    \end{itemize}
+\end{enumerate}
+
+\section{Zarządzanie pamięcią i kompilacja}
+Program operuje na grafach wczytywanych w locie, w związku z czym zaimplementowano całkowicie dynamiczne zarządzanie pamięcią (\texttt{malloc}). Główna tablica \texttt{vertices} jest alokowana dopiero po zliczeniu unikalnych identyfikatorów. W przypadku algorytmu SMACOF, alokowane są dodatkowo dwuwymiarowe tablice wskaźników do obsługi macierzy odległości \texttt{d\_target} i macierzy wag \texttt{w}.
+
+Pamięć jest zwalniana procedurą \texttt{free()} zarówno na końcu działania poszczególnych algorytmów (dla lokalnych struktur obliczeniowych), jak i przed instrukcją \texttt{return 0} funkcji \texttt{main} dla głównej struktury grafu. Zapewnia to stabilność na długotrwałych seriach testów. 
+
+Plik należy kompilować z flagą wymuszającą konsolidację biblioteki matematycznej:
+\begin{lstlisting}[language=bash]
+gcc -o graph_layout graph_layout.c -lm
+\end{lstlisting}
+
+
+
+\end{document}
