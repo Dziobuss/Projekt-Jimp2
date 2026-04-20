@@ -21,7 +21,7 @@ void calculate_smacof(Vertex* vertices, int num_v, Edge* edges, int num_e, int i
         }
     }
 
-    // Wypełnianie bezpośrednich krawędzi
+    // Wypełnianie bezpośrednich krawędzi poczatkowymi wartosciami
     for(int i = 0; i < num_e; i++) {
         int u_idx = -1, v_idx = -1;
         for(int j = 0; j < num_v; j++) {
@@ -36,7 +36,7 @@ void calculate_smacof(Vertex* vertices, int num_v, Edge* edges, int num_e, int i
         }
     }
 
-    // Floyd-Warshall (Najkrótsze ścieżki)
+    // Floyd-Warshall liczy najkrótsze ścieżki dla wszystkich punktów
     for(int k = 0; k < num_v; k++) {
         for(int i = 0; i < num_v; i++) {
             for(int j = 0; j < num_v; j++) {
@@ -47,7 +47,7 @@ void calculate_smacof(Vertex* vertices, int num_v, Edge* edges, int num_e, int i
         }
     }
 
-    // Obsługa grafu niespójnego: zamień nieskończoność na dużą wartość
+    // Jesli nie ma polaczenia z jakas wartoscia wypchnie ją na dużą odległość
     double max_dist = 0;
     for(int i = 0; i < num_v; i++) {
         for(int j = 0; j < num_v; j++) {
@@ -64,13 +64,13 @@ void calculate_smacof(Vertex* vertices, int num_v, Edge* edges, int num_e, int i
         }
     }
 
-    // Inicjalizacja: Punkty na okręgu (nadpisuje losową z maina, lepsze dla SMACOF)
+    // Inicjalizacja punktów na okręgu (zamienione na współrzędne biegunowe)
     for (int i = 0; i < num_v; i++) {
         vertices[i].x = cos(i * 2.0 * M_PI / num_v) * num_v;
         vertices[i].y = sin(i * 2.0 * M_PI / num_v) * num_v;
     }
 
-    // 1. Oblicz wagi
+    // Liczenie wag
     for(int i = 0; i < num_v; i++) {
         for(int j = 0; j < num_v; j++) {
             if (i == j || d_target[i][j] >= DBL_MAX / 4.0) {
@@ -84,7 +84,9 @@ void calculate_smacof(Vertex* vertices, int num_v, Edge* edges, int num_e, int i
     double *next_x = malloc(num_v * sizeof(double));
     double *next_y = malloc(num_v * sizeof(double));
 
-    // 2. Pętla optymalizacji (Guttman Transform)
+    /* Transformacja Guttmana, i patrzy na wszystkie inne punkty
+    sprawdza desired target i wylicza co iteracje nowy x i y dla kazdego pktu
+    jako srednia wazona*/
     for (int iter = 0; iter < iterations; iter++) {
         for (int i = 0; i < num_v; i++) {
             double sum_w = 0, sum_x = 0, sum_y = 0;
