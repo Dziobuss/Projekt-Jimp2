@@ -1,0 +1,116 @@
+\documentclass[12pt, a4paper]{article}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[polish]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{setspace}
+\usepackage{verbatim}
+\usepackage[hidelinks]{hyperref}
+\usepackage{tocloft}
+\usepackage{float}
+\renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
+
+\onehalfspacing
+
+\title{\vspace*{3cm} \textbf{Dokumentacja Funkcjonalna Języka Java}}
+\author{Autorzy: Mateusz Bombola \\ Kajetan Karwacki}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+\thispagestyle{empty}
+
+\newpage
+\tableofcontents
+\newpage
+
+\section{Cel projektu}
+Celem tej części projektu jest stworzenie okienkowej aplikacji w języku Java z wykorzystaniem biblioteki Swing. Aplikacja służy jako graficzny interfejs użytkownika do wizualizacji grafów planarnych. Głównym zadaniem programu jest wczytanie struktury grafu oraz jego współrzędnych (wygenerowanych wcześniej przez moduł obliczeniowy w języku C), a następnie interaktywne wyświetlenie ich na ekranie, dając użytkownikowi możliwość swobodnej manipulacji widokiem.
+
+\section{Opis funkcji udostępnianych przez program}
+Aplikacja została zaprojektowana z myślą o intuicyjnej obsłudze przy użyciu myszy i klawiatury. Główne funkcjonalności programu to:
+\begin{itemize}
+    \item \textbf{Wizualizacja grafu:} Rysowanie węzłów (reprezentowanych jako punkty) oraz krawędzi (linii łączących) na płótnie.
+    \item \textbf{Interakcja z węzłami:} Możliwość ręcznej edycji i przesuwania pojedynczych węzłów po płótnie w celu poprawy czytelności układu.
+    \item \textbf{Obsługa przestrzeni roboczej:} Przybliżanie i oddalanie widoku za pomocą rolki myszy lub przycisków w panelu.
+    \item \textbf{Zarządzanie wyświetlaniem:} Pokaż/ukryj identyfikatory węzłów oraz wagi krawędzi.
+    \item \textbf{Eksport wyników:} Zapis zmodyfikowanego ułożenia grafu do nowego pliku.
+\end{itemize}
+
+\section{Budowa Interfejsu Użytkownika}
+Okno główne aplikacji podzielone jest na trzy sekcje:
+
+\subsection{Pasek Menu}
+Znajduje się na samej górze okna i zawiera opcje zarządzania plikami:
+\begin{itemize}
+    \item \textbf{Plik $\rightarrow$ Wczytaj strukturę grafu:} Pozwala wczytać początkowy plik tekstowy z definicją krawędzi.
+    \item \textbf{Plik $\rightarrow$ Wczytaj współrzędne (.txt / .bin):} Wczytuje wygenerowane pozycje X i Y z pliku.
+    \item \textbf{Plik $\rightarrow$ Zapisz wyniki (.txt / .bin):} Zapisuje obecne współrzędne węzłów do pliku.
+    \item \textbf{Plik $\rightarrow$ Zapisz jako obraz:} Pozwala na zrzut obecnego widoku obszaru roboczego do pliku graficznego (np. PNG).
+    \item \textbf{Plik $\rightarrow$ Zakończ:} Zamyka aplikację.
+\end{itemize}
+
+\subsection{Panel Narzędziowy}
+Panel, w którym znajdują się przyciski szybkiego dostępu:
+\begin{itemize}
+    \item \textbf{Wybór algorytmu:} Rozwijana lista pozwalająca na wybór sposobu rozmieszczenia (Fruchterman-Reingold lub Tutte Embedding). Uwaga: Funkcja ta jest połączona z wywołaniem zewnętrznego programu C w tle.
+    \item \textbf{Pokaż/Ukryj Etykiety:} Przełącznik sterujący widocznością numerów ID węzłów.
+    \item \textbf{Pokaż/Ukryj Wagi:} Przełącznik sterujący widocznością wag na krawędziach.
+    \item \textbf{Resetuj widok:} Przywraca domyślny poziom przybliżenia i środkuje graf na płótnie.
+\end{itemize}
+
+\subsection{Obszar Roboczy}
+Centralna, największa część okna. Zaimplementowany komponent Swing, na którym za pomocą biblioteki \texttt{Graphics2D} renderowana jest ostateczna siatka grafu. Reaguje on na zdarzenia myszy (kliknięcia, przeciąganie, scrollowanie).
+
+\section{Obsługiwane formaty danych}
+Aplikacja wymaga do pełnego działania wczytania dwóch zestawów danych:
+
+\subsection{Lista krawędzi (Struktura topologii)}
+Plik tekstowy definiujący połączenia. Informuje program w Javie o tym, pomiędzy którymi węzłami należy narysować linie.
+\\
+\textbf{Format linii:} \texttt{<nazwa\_krawędzi> <wierzchołek\_A> <wierzchołek\_B> <waga>}
+\\
+\textbf{Przykład pliku wejściowego:}
+\begin{verbatim}
+AB 1 2 1.0
+BC 2 3 1.5
+CD 3 4 1.0
+\end{verbatim}
+
+\subsection{Współrzędne węzłów}
+Aplikacja obsługuje oba formaty wygenerowane przez silnik obliczeniowy w języku C:
+\begin{itemize}
+    \item \textbf{Format tekstowy (.txt):} Parsowany linia po linii.
+    \\ \textbf{Przykład pliku:}
+\begin{verbatim}
+1 0.0 0.0
+2 100.5 50.0
+3 50.0 100.0
+\end{verbatim}
+    \item \textbf{Format binarny (.bin):} Wczytywany za pomocą strumieni bajtowych. Program wczytuje początkową liczbę całkowitą (ilość węzłów), a następnie czyta kolejne 20-bajtowe bloki struktur (4 bajty ID typu Int, 8 bajtów osi X typu Double, 8 bajtów osi Y typu Double).
+\end{itemize}
+\section{Sytuacje wyjątkowe i kody błędów}
+Aplikacja została zabezpieczona przed błędami użytkownika oraz uszkodzonymi danymi wejściowymi. Wszelkie anomalie nie powodują zawieszenia programu, lecz wyświetlają okno dialogowe z ostrzeżeniem.
+
+\begin{table}[H]
+\centering
+\renewcommand{\arraystretch}{1.5}
+\begin{tabular}{|p{4.5cm}|p{5cm}|p{5cm}|}
+\hline
+\textbf{Sytuacja wyjątkowa} & \textbf{Zachowanie programu} & \textbf{Komunikat dla użytkownika} \\
+\hline
+Wczytanie uszkodzonego pliku tekstowego & Przerwanie ładowania grafu, czyszczenie płótna. & \textit{"Błąd: Wybrany plik ma niepoprawny format lub zawiera litery zamiast liczb."} \\
+\hline
+Wczytanie pliku .bin niezgodnego ze strukturą & Zatrzymanie strumienia czytającego, odrzucenie danych. & \textit{"Błąd: Plik binarny ma niepoprawny format."} \\
+\hline
+Brak pliku topologii przed wczytaniem współrzędnych & Program ładuje punkty, ale nie rysuje krawędzi. & \textit{"Ostrzeżenie: Wczytano współrzędne, ale brakuje pliku krawędzi."} \\
+\hline
+Próba zapisu obrazu przy pustym płótnie & Blokada przycisku zapisu lub anulowanie akcji. & \textit{"Błąd: Brak grafu do zapisania. Obszar roboczy jest pusty"} \\
+\hline
+\end{tabular}
+\end{table}
+
+\end{document}
