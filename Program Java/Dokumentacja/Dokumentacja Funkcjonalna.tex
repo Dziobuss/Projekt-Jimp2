@@ -10,6 +10,8 @@
 \usepackage[hidelinks]{hyperref}
 \usepackage{tocloft}
 \usepackage{float}
+\usepackage{enumitem} % Dodane dla lepszej kontroli list
+
 \renewcommand{\cftsecleader}{\cftdotfill{\cftdotsep}}
 
 \onehalfspacing
@@ -28,89 +30,82 @@
 \newpage
 
 \section{Cel projektu}
-Celem tej części projektu jest stworzenie okienkowej aplikacji w języku Java z wykorzystaniem biblioteki Swing. Aplikacja służy jako graficzny interfejs użytkownika do wizualizacji grafów planarnych. Głównym zadaniem programu jest wczytanie struktury grafu oraz jego współrzędnych (wygenerowanych wcześniej przez moduł obliczeniowy w języku C), a następnie interaktywne wyświetlenie ich na ekranie, dając użytkownikowi możliwość swobodnej manipulacji widokiem.
+Projekt ma na celu dostarczenie interaktywnego narzędzia graficznego do wizualizacji i edycji układu grafów planarnych. Aplikacja ta pełni rolę interfejsu, interpretującego dane wyjściowe z modułu obliczeniowego C. Użytkownik może nie tylko przeglądać wygenerowany układ, ale również aktywnie go modyfikować, zarządzać widokiem i eksportować wyniki pracy do celów dokumentacyjnych.
 
-\section{Opis funkcji udostępnianych przez program}
-Aplikacja została zaprojektowana z myślą o intuicyjnej obsłudze przy użyciu myszy i klawiatury. Główne funkcjonalności programu to:
-\begin{itemize}
-    \item \textbf{Wizualizacja grafu:} Rysowanie węzłów (reprezentowanych jako punkty) oraz krawędzi (linii łączących) na płótnie.
-    \item \textbf{Interakcja z węzłami:} Możliwość ręcznej edycji i przesuwania pojedynczych węzłów po płótnie w celu poprawy czytelności układu.
-    \item \textbf{Obsługa przestrzeni roboczej:} Przybliżanie i oddalanie widoku za pomocą rolki myszy lub przycisków w panelu.
-    \item \textbf{Zarządzanie wyświetlaniem:} Pokaż/ukryj identyfikatory węzłów oraz wagi krawędzi.
-    \item \textbf{Eksport wyników:} Zapis zmodyfikowanego ułożenia grafu do nowego pliku.
+\section{Pełna lista funkcjonalności (Interakcje)}
+W tej sekcji przedstawiono szczegółowy wykaz funkcji programu wraz ze sposobem ich wywołania przez użytkownika.
+
+\subsection{Zarządzanie plikami i danymi}
+\begin{itemize}[label=$\square$]
+    \item \textbf{Wczytywanie topologii grafu:} Za pośrednictwem menu plików użytkownik wybiera plik tekstowy definiujący krawędzie (lista krawędzi). Program buduje strukturę powiązań na podstawie wybranego wcześniej jednego z dwóch algorytmów obliczeniowych.
+    \item \textbf{Wczytywanie współrzędnych (TXT/BIN):} Użytkownik może wczytać plik ze współrzędnymi węzłów. Program automatycznie mapuje pozycje na załadowaną wcześniej strukturę grafu.
+    \item \textbf{Zapis współrzędnych:} Możliwość zapisu aktualnego (również po ręcznej edycji) układu wierzchołków do pliku tekstowego lub binarnego.
+    \item \textbf{Eksport do formatu graficznego (PNG):} Funkcja „Zapisz jako obraz” generuje plik graficzny zawierający aktualny stan obszaru roboczego (snapshot).
 \end{itemize}
 
-\section{Budowa Interfejsu Użytkownika}
-Okno główne aplikacji podzielone jest na trzy sekcje:
+\subsection{Manipulacja widokiem (Nawigacja)}
+\begin{itemize}[label=$\square$]
+    \item \textbf{Przesuwanie obszaru roboczego (Panning):} Użytkownik może przesuwać cały widok grafu poprzez kliknięcie i przytrzymanie \textbf{prawego przycisku myszy} lub \textbf{środkowego przycisku (scrolla)} i przeciąganie kursora po ekranie.
+    \item \textbf{Skalowanie widoku (Zooming):} Przybliżanie i oddalanie grafu odbywa się za pomocą \textbf{rolki myszy (scroll)}. Punktem odniesienia dla zoomu jest aktualna pozycja kursora myszy.
+    \item \textbf{Resetowanie widoku:} Za pomocą dedykowanego przycisku „Resetuj widok” użytkownik może natychmiast przywrócić domyślną skalę (1:1) i wycentrować graf na środku okna.
+\end{itemize}
+
+\subsection{Interakcja z elementami grafu}
+\begin{itemize}[label=$\square$]
+    \item \textbf{Ręczne przesuwanie węzłów (Drag \& Drop):} Użytkownik może zmienić pozycję dowolnego węzła poprzez kliknięcie na niego \textbf{lewym przyciskiem myszy} i przeciągnięcie go w nowe miejsce. Krawędzie incydentne z wierzchołkiem podążają za nim w czasie rzeczywistym.
+    \item \textbf{Wizualizacja wag krawędzi poprzez kolory:} Program automatycznie analizuje wagi krawędzi i zmienia kolorystykę krawędzi w gradiencie od zieleni do czerwieni, co pozwala na szybką wzrokową ocenę parametrów grafu.
+    \item \textbf{Zarządzanie etykietami:} Przełączniki w panelu bocznym pozwalają na selektywne włączanie i wyłączanie wyświetlania identyfikatorów węzłów oraz wartości wag krawędzi.
+\end{itemize}
+
+\section{Elementy Interfejsu Użytkownika}
 
 \subsection{Pasek Menu}
-Znajduje się na samej górze okna i zawiera opcje zarządzania plikami:
 \begin{itemize}
-    \item \textbf{Plik $\rightarrow$ Wczytaj strukturę grafu:} Pozwala wczytać początkowy plik tekstowy z definicją krawędzi.
-    \item \textbf{Plik $\rightarrow$ Wczytaj współrzędne (.txt / .bin):} Wczytuje wygenerowane pozycje X i Y z pliku.
-    \item \textbf{Plik $\rightarrow$ Zapisz wyniki (.txt / .bin):} Zapisuje obecne współrzędne węzłów do pliku.
-    \item \textbf{Plik $\rightarrow$ Zapisz jako obraz:} Pozwala na zrzut obecnego widoku obszaru roboczego do pliku graficznego (np. PNG).
-    \item \textbf{Plik $\rightarrow$ Zakończ:} Zamyka aplikację.
+    \item \textbf{Menu Plik:} 
+    \begin{itemize}
+        \item \textit{Otwórz strukturę...} – otwiera systemowe okno wyboru pliku, przyjmuje wcześniej zapisane pliki .gph.
+        \item \textit{Wczytaj współrzędne...} – pozwala wybrać plik .txt lub .bin w celu wczytania współrzędnych dla każdego węzła grafu.
+        \item \textit{Zapisz jako...} – pozwala wybrać miejsce zapisu oraz zapisuje powstałą strukturę w formanie .gph.
+        \item \textit{Eksportuj obraz...} – generuje plik .png na podstawie grafu.
+    \end{itemize}
 \end{itemize}
 
-\subsection{Panel Narzędziowy}
-Panel, w którym znajdują się przyciski szybkiego dostępu:
+\subsection{Panel Narzędziowy (Boczny/Górny)}
+Zawiera kontrolki wpływające na sposób renderowania:
 \begin{itemize}
-    \item \textbf{Wybór algorytmu:} Rozwijana lista pozwalająca na wybór sposobu rozmieszczenia (Fruchterman-Reingold lub Tutte Embedding). Uwaga: Funkcja ta jest połączona z wywołaniem zewnętrznego programu C w tle.
-    \item \textbf{Pokaż/Ukryj Etykiety:} Przełącznik sterujący widocznością numerów ID węzłów.
-    \item \textbf{Pokaż/Ukryj Wagi:} Przełącznik sterujący widocznością wag na krawędziach.
-    \item \textbf{Resetuj widok:} Przywraca domyślny poziom przybliżenia i środkuje graf na płótnie.
+    \item \textbf{CheckBoxy:} „Pokaż etykiety”, „Pokaż wagi”.
+    \item \textbf{Przycisk akcji:} „Resetuj widok”.
 \end{itemize}
 
-\subsection{Obszar Roboczy}
-Centralna, największa część okna. Zaimplementowany komponent Swing, na którym za pomocą biblioteki \texttt{Graphics2D} renderowana jest ostateczna siatka grafu. Reaguje on na zdarzenia myszy (kliknięcia, przeciąganie, scrollowanie).
+\subsection{Główny Obszar Roboczy}
+Interaktywny komponent wykonany przy użyciu klasy \texttt{JPanel} z nadpisaną metodą \texttt{paintComponent}. To tutaj odbywa się cała interakcja myszą. Wyświetla on i modyfikuje w czasie rzeczywistym utworzone grafy. 
 
-\section{Obsługiwane formaty danych}
-Aplikacja wymaga do pełnego działania wczytania dwóch zestawów danych:
+\section{Formaty Danych}
+\subsection{Format wejściowy topologii}
+Program oczekuje pliku tekstowego, gdzie każda linia reprezentuje jedną krawędź:
+\\ \texttt{<E\_ID> <V\_START> <V\_END> <WEIGHT>}
+\\ Przykład: \texttt{e1 1 2 15.5}
 
-\subsection{Lista krawędzi (Struktura topologii)}
-Plik tekstowy definiujący połączenia. Informuje program w Javie o tym, pomiędzy którymi węzłami należy narysować linie.
-\\
-\textbf{Format linii:} \texttt{<nazwa\_krawędzi> <wierzchołek\_A> <wierzchołek\_B> <waga>}
-\\
-\textbf{Przykład pliku wejściowego:}
-\begin{verbatim}
-AB 1 2 1.0
-BC 2 3 1.5
-CD 3 4 1.0
-\end{verbatim}
-
-\subsection{Współrzędne węzłów}
-Aplikacja obsługuje oba formaty wygenerowane przez silnik obliczeniowy w języku C:
+\subsection{Format współrzędnych (Wyjście z C)}
 \begin{itemize}
-    \item \textbf{Format tekstowy (.txt):} Parsowany linia po linii.
-    \\ \textbf{Przykład pliku:}
-\begin{verbatim}
-1 0.0 0.0
-2 100.5 50.0
-3 50.0 100.0
-\end{verbatim}
-    \item \textbf{Format binarny (.bin):} Wczytywany za pomocą strumieni bajtowych. Program wczytuje początkową liczbę całkowitą (ilość węzłów), a następnie czyta kolejne 20-bajtowe bloki struktur (4 bajty ID typu Int, 8 bajtów osi X typu Double, 8 bajtów osi Y typu Double).
+    \item \textbf{Tekstowy:} \texttt{<V\_ID> <X\_COORD> <Y\_COORD>}
+    \item \textbf{Binarny:} Blokowa struktura danych (4B int ID, 8B double X, 8B double Y).
 \end{itemize}
-\section{Sytuacje wyjątkowe i kody błędów}
-Aplikacja została zabezpieczona przed błędami użytkownika oraz uszkodzonymi danymi wejściowymi. Wszelkie anomalie nie powodują zawieszenia programu, lecz wyświetlają okno dialogowe z ostrzeżeniem.
+
+\section{Sytuacje wyjątkowe i błędy}
+Program aktywnie komunikuje błędy poprzez okna dialogowe (\texttt{JOptionPane}):
 
 \begin{table}[H]
 \centering
-\renewcommand{\arraystretch}{1.5}
-\begin{tabular}{|p{4.5cm}|p{5cm}|p{5cm}|}
+\small
+\begin{tabularx}{\textwidth}{|l|X|X|}
 \hline
-\textbf{Sytuacja wyjątkowa} & \textbf{Zachowanie programu} & \textbf{Komunikat dla użytkownika} \\
-\hline
-Wczytanie uszkodzonego pliku tekstowego & Przerwanie ładowania grafu, czyszczenie płótna. & \textit{"Błąd: Wybrany plik ma niepoprawny format lub zawiera litery zamiast liczb."} \\
-\hline
-Wczytanie pliku .bin niezgodnego ze strukturą & Zatrzymanie strumienia czytającego, odrzucenie danych. & \textit{"Błąd: Plik binarny ma niepoprawny format."} \\
-\hline
-Brak pliku topologii przed wczytaniem współrzędnych & Program ładuje punkty, ale nie rysuje krawędzi. & \textit{"Ostrzeżenie: Wczytano współrzędne, ale brakuje pliku krawędzi."} \\
-\hline
-Próba zapisu obrazu przy pustym płótnie & Blokada przycisku zapisu lub anulowanie akcji. & \textit{"Błąd: Brak grafu do zapisania. Obszar roboczy jest pusty"} \\
-\hline
-\end{tabular}
+\textbf{Problem} & \textbf{Reakcja programu} & \textbf{Komunikat} \\ \hline
+Niepoprawny format pliku & Przerwanie operacji wczytywania. & „Błąd: Plik jest uszkodzony lub ma niewłaściwy format.” \\ \hline
+Brak pliku silnika C & Wyłączenie funkcji przeliczania grafu. & „Błąd: Nie znaleziono modułu obliczeniowego (silnika C).” \\ \hline
+Wczytanie punktów bez grafu & Wyświetlenie samych punktów bez połączeń. & „Ostrzeżenie: Wczytano pozycje, ale brak zdefiniowanych krawędzi.” \\ \hline
+Próba zapisu bez danych & Zablokowanie opcji zapisu. & „Błąd: Brak danych do eksportu.” \\ \hline
+\end{tabularx}
 \end{table}
 
 \end{document}
