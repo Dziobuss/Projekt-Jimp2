@@ -203,19 +203,65 @@ public class GraphApp extends JFrame {
         }
     }
 
+// Zmienna, która zapamięta ścieżkę do silnika C
     private String enginePath = null;
+
     private void runCalculation() {
-        if(graphPanel.getEdges().isEmpty()) { JOptionPane.showMessageDialog(this, "Brak krawędzi."); return; }
-        if (enginePath == null) {
-            String def = System.getProperty("os.name").toLowerCase().contains("win") ? "graph_layout.exe" : "./graph_layout";
-            if (new File(def).exists()) enginePath = def;
-            else { JFileChooser ch = new JFileChooser(); if (ch.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) enginePath = ch.getSelectedFile().getAbsolutePath(); else return; }
+        if(graphPanel.getEdges().isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Najpierw wczytaj strukturę krawędzi (Menu Plik)!", "Brak danych", JOptionPane.WARNING_MESSAGE); 
+            return;
         }
+
+        // Szukamy Twojego nowego pliku .exe
+        if (enginePath == null) {
+            JOptionPane.showMessageDialog(this, 
+                "Teraz wskaż swój skompilowany plik silnika C (graph_layout.exe).\nZrobię to tylko raz i zapamiętam!", 
+                "Wskaż silnik", JOptionPane.INFORMATION_MESSAGE);
+                
+            JFileChooser ch = new JFileChooser();
+            ch.setDialogTitle("Wybierz plik graph_layout.exe");
+            if (ch.showOpenDialog(this) == JFileChooser.APPROVE_OPTION) {
+                enginePath = ch.getSelectedFile().getAbsolutePath();
+            } else {
+                return; // Użytkownik anulował
+            }
+        }
+
         String algo = algoSelector.getSelectedItem().equals("Fruchterman-Reingold") ? "fr" : "smacof";
+        
         try {
-            Process p = new ProcessBuilder(enginePath, "-i", currentTopoFile, "-o", "wynik.txt", "-a", algo).start();
-            if (p.waitFor() == 0) { loadCoordinatesFromFile("wynik.txt"); }
-        } catch (Exception ex) { enginePath = null; }
+            // Uruchamiamy plik C natywnie w Windowsie (BEZ WSL!)
+            ProcessBuilder pb = new ProcessBuilder(enginePath, "-i", currentTopoFile, "-o", "wynik.txt", "-a", algo);
+            
+            // Ustawiamy folder roboczy tam, gdzie leży plik dane.txt
+            File workingDirectory = new File(currentTopoFile).getParentFile();
+            if (workingDirectory != null) {
+                pb.directory(workingDirectory);
+            }
+            
+            Process p = pb.start();
+            
+            BufferedReader errorReader = new BufferedReader(new InputStreamReader(p.getErrorStream()));
+            StringBuilder errors = new StringBuilder();
+            String line;
+            while ((line = errorReader.readLine()) != null) errors.append(line).append("\n");
+            
+            int exitCode = p.waitFor(); 
+            
+            if (exitCode == 0) { 
+                // Wczytujemy plik wynik.txt, który właśnie wypluł C
+                File wynikFile = new File(workingDirectory, "wynik.txt");
+                loadCoordinatesFromFile(wynikFile.getAbsolutePath()); 
+                
+                graphPanel.resetView(); 
+                JOptionPane.showMessageDialog(this, "Silnik C obliczył nowy układ grafu!"); 
+            } else {
+                JOptionPane.showMessageDialog(this, "Silnik C zwrócił błąd:\n" + errors.toString(), "Awaria w C", JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception ex) { 
+            JOptionPane.showMessageDialog(this, "Błąd uruchomienia:\n" + ex.getMessage(), "Błąd Systemu", JOptionPane.ERROR_MESSAGE); 
+            enginePath = null; // Jeśli coś poszło nie tak, zresetuj ścieżkę
+        }
     }
 
     private void loadTopology() {
